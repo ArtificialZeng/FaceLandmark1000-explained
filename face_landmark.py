@@ -47,37 +47,33 @@ class FaceLandmark(object):  # 定义一个名为FaceLandmark的类
 '''
 
 
-    def preprocess(self, image, bbox):
-        bbox_width = bbox[2] - bbox[0]
-        bbox_height = bbox[3] - bbox[1]
-        if bbox_width <= self.min_face or bbox_height <= self.min_face:
-            return None, None
-        add = int(max(bbox_width, bbox_height))
-        bimg = cv2.copyMakeBorder(image, add, add, add, add,
-                                  borderType=cv2.BORDER_CONSTANT,
-                                  value=np.array([127., 127., 127.]))
-        bbox += add
+    def preprocess(self, image, bbox):  # 定义预处理函数，接收图像和边界框参数
+        bbox_width = bbox[2] - bbox[0]  # 计算边界框的宽度
+        bbox_height = bbox[3] - bbox[1]  # 计算边界框的高度
+        if bbox_width <= self.min_face or bbox_height <= self.min_face:  # 如果边界框的宽度或高度小于设定的最小面部尺寸
+            return None, None  # 直接返回None
+        add = int(max(bbox_width, bbox_height))  # 获取边界框的宽度和高度中的最大值
+        bimg = cv2.copyMakeBorder(image, add, add, add, add,  # 对图像进行边缘扩充
+                                  borderType=cv2.BORDER_CONSTANT,  # 扩充类型为常数扩充
+                                  value=np.array([127., 127., 127.]))  # 扩充值为[127., 127., 127.]
+        bbox += add  # 对边界框的坐标进行调整
+        face_width = (1 + 2 * 0.1) * bbox_width  # 计算扩展后的人脸区域的宽度
+        face_height = (1 + 2 * 0.2) * bbox_height  # 计算扩展后的人脸区域的高度
+        center = [(bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2]  # 计算边界框的中心点
+        bbox[0] = center[0] - face_width // 2  # 计算新边界框的左边坐标
+        bbox[1] = center[1] - face_height // 2  # 计算新边界框的上边坐标
+        bbox[2] = center[0] + face_width // 2  # 计算新边界框的右边坐标
+        bbox[3] = center[1] + face_height // 2  # 计算新边界框的下边坐标
+        bbox = bbox.astype(np.int)  # 将边界框的坐标转换为整数
+        crop_image = bimg[bbox[1]:bbox[3], bbox[0]:bbox[2], :]  # 从扩充后的图像中裁剪出人脸区域
+        h, w, _ = crop_image.shape  # 获取裁剪后的图像的高度和宽度
+        crop_image = cv2.resize(crop_image, (self.image_size, self.image_size))  # 将裁剪后的图像调整为指定的大小
+        crop_image = cv2.cvtColor(crop_image, cv2.COLOR_RGB2GRAY)  # 将裁剪后的图像从RGB转换为灰度
+        crop_image = np.expand_dims(crop_image, axis=0)  # 增加维度
+        crop_image = np.expand_dims(crop_image, axis=0)  # 再次增加维度
+        crop_image = torch.from_numpy(crop_image).detach().float()  # 将numpy数组转换为PyTorch的张量，并转换为浮点数
+        return crop_image, [h, w, bbox[1], bbox[0], add]  # 返回预处理后的图像和一些重要参数
 
-        face_width = (1 + 2 * 0.1) * bbox_width
-        face_height = (1 + 2 * 0.2) * bbox_height
-        center = [(bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2]
-
-        bbox[0] = center[0] - face_width // 2
-        bbox[1] = center[1] - face_height // 2
-        bbox[2] = center[0] + face_width // 2
-        bbox[3] = center[1] + face_height // 2
-
-        # crop
-        bbox = bbox.astype(np.int)
-        crop_image = bimg[bbox[1]:bbox[3], bbox[0]:bbox[2], :]
-
-        h, w, _ = crop_image.shape
-        crop_image = cv2.resize(crop_image, (self.image_size, self.image_size))
-        crop_image = cv2.cvtColor(crop_image, cv2.COLOR_RGB2GRAY)
-        crop_image = np.expand_dims(crop_image, axis=0)
-        crop_image = np.expand_dims(crop_image, axis=0)
-        crop_image = torch.from_numpy(crop_image).detach().float()
-        return crop_image, [h, w, bbox[1], bbox[0], add]
 
 
     def postprocess(self, landmark, detail):
