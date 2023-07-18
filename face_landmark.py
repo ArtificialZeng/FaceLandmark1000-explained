@@ -20,20 +20,21 @@ class FaceLandmark(object):
         self.previous_landmarks_set = None
 
     def run(self, image, bbox):
-        processed_image, details = self.preprocess(image, bbox)
-        ort_inputs = {self.ort_session.get_inputs()[0].name: self.to_numpy(processed_image)}
-        result = self.ort_session.run(None, ort_inputs)
-        landmarks = result[0][0, :1946].reshape(-1, 2)
-        states = result[(1946 + 3):]
-        landmarks = self.postprocess(landmarks, details)
-        return np.array(landmarks), np.array(states)
-
+        processed_image, details = self.preprocess(image, bbox)  # 调用预处理函数，处理输入的图像和边界框
+        ort_inputs = {self.ort_session.get_inputs()[0].name: self.to_numpy(processed_image)}  # 将处理过的图像转为numpy数组，用于传入ONNX Runtime会话
+        result = self.ort_session.run(None, ort_inputs)  # 运行ONNX Runtime会话
+        landmarks = result[0][0, :1946].reshape(-1, 2)  # 提取特征点信息
+        states = result[(1946 + 3):]  # 提取状态信息
+        landmarks = self.postprocess(landmarks, details)  # 对特征点进行后处理
+        return np.array(landmarks), np.array(states)  # 返回特征点和状态信息
+    
     def show_result(self, image, landmark):
-        for point in landmark:
-            cv2.circle(image, center=(int(point[0]), int(point[1])),
+        for point in landmark:  # 遍历每一个特征点
+            cv2.circle(image, center=(int(point[0]), int(point[1])),  # 在图像上画圆标记特征点
                        color=(255, 122, 122), radius=1, thickness=1)
-        cv2.imshow('', image)
-        cv2.waitKey(1)
+        cv2.imshow('', image)  # 展示处理过的图像
+        cv2.waitKey(1)  # 等待1毫秒，以便看到图像
+
 
     def preprocess(self, image, bbox):
         bbox_width = bbox[2] - bbox[0]
