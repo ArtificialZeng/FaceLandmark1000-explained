@@ -77,40 +77,37 @@ class FaceLandmark(object):
         crop_image = torch.from_numpy(crop_image).detach().float()
         return crop_image, [h, w, bbox[1], bbox[0], add]
 
+
     def postprocess(self, landmark, detail):
-        landmark[:, 0] = landmark[:, 0] * detail[1] + detail[3] - detail[4]
-        landmark[:, 1] = landmark[:, 1] * detail[0] + detail[2] - detail[4]
-        return landmark
-
+        landmark[:, 0] = landmark[:, 0] * detail[1] + detail[3] - detail[4]  # 对landmark的x坐标进行处理
+        landmark[:, 1] = landmark[:, 1] * detail[0] + detail[2] - detail[4]  # 对landmark的y坐标进行处理
+        return landmark  # 返回处理后的landmark
+    
     def to_numpy(self, tensor):
-        return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
+        return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()  # 将Tensor对象转为Numpy数组
+    
+    def calculate(self, now_landmarks_set):  # 计算特征点
+        if self.previous_landmarks_set is None or self.previous_landmarks_set.shape[0]==0:  # 如果previous_landmarks_set为空或长度为0
+            self.previous_landmarks_set = now_landmarks_set  # 将当前的landmarks赋值给previous_landmarks_set
+            result = now_landmarks_set  # 将当前的landmarks赋值给result
+        else:  # 如果previous_landmarks_set不为空
+            if self.previous_landmarks_set.shape[0] == 0:  # 如果previous_landmarks_set的长度为0
+                return now_landmarks_set  # 直接返回当前的landmarks
+            else:  # 如果previous_landmarks_set的长度不为0
+                result = []  # 创建一个空列表result
+                for i in range(now_landmarks_set.shape[0]):  # 遍历当前的landmarks
+                    not_in_flag = True  # 设置一个标志
+                    for j in range(self.previous_landmarks_set.shape[0]):  # 遍历previous_landmarks_set
+                        if self.iou(now_landmarks_set[i], self.previous_landmarks_set[j]) > self.iou_thres:  # 如果当前landmark与previous_landmark的iou大于阈值
+                            result.append(self.smooth(now_landmarks_set[i], self.previous_landmarks_set[j]))  # 对当前landmark进行平滑处理并添加到result中
+                            not_in_flag = False  # 将标志设为False
+                            break  # 跳出内层循环
+                    if not_in_flag:  # 如果标志为True
+                        result.append(now_landmarks_set[i])  # 直接将当前landmark添加到result中
+        result = np.array(result)  # 将result转为Numpy数组
+        self.previous_landmarks_set=result  # 将result赋值给previous_landmarks_set
+        return result  # 返回result
 
-    def calculate(self, now_landmarks_set):
-
-        if self.previous_landmarks_set is None or self.previous_landmarks_set.shape[0]==0:
-            self.previous_landmarks_set = now_landmarks_set
-            result = now_landmarks_set
-
-        else:
-            if self.previous_landmarks_set.shape[0] == 0:
-                return now_landmarks_set
-            else:
-                result = []
-                for i in range(now_landmarks_set.shape[0]):
-                    not_in_flag = True
-                    for j in range(self.previous_landmarks_set.shape[0]):
-                        if self.iou(now_landmarks_set[i], self.previous_landmarks_set[j]) > self.iou_thres:
-
-                            result.append(self.smooth(now_landmarks_set[i], self.previous_landmarks_set[j]))
-                            not_in_flag = False
-                            break
-                    if not_in_flag:
-                        result.append(now_landmarks_set[i])
-
-        result = np.array(result)
-        self.previous_landmarks_set=result
-
-        return result
 
     def iou(self, p_set0, p_set1):
         rec1=[np.min(p_set0[:, 0]), np.min(p_set0[:, 1]), np.max(p_set0[:, 0]), np.max(p_set0[:, 1])]
