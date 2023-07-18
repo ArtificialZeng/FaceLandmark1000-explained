@@ -6,18 +6,20 @@ import onnxruntime
 import math
 
 
-class FaceLandmark(object):
-    def __init__(self):
-        self.model_path = r'model/FaceLandmark.onnx'
-        self.onnx_model = onnx.load(self.model_path)
-        onnx.checker.check_model(self.onnx_model)
-        self.ort_session = onnxruntime.InferenceSession(self.model_path)
-        self.image_size = 128
-        self.min_face = 100
-        self.iou_thres = 0.5
-        self.thres = 1
-        self.filter = OneEuroFilter()
-        self.previous_landmarks_set = None
+class FaceLandmark(object):  # 定义一个名为FaceLandmark的类
+
+    def __init__(self):  # 定义类的初始化函数
+        self.model_path = r'model/FaceLandmark.onnx'  # 设置ONNX模型的路径
+        self.onnx_model = onnx.load(self.model_path)  # 使用ONNX库的load函数来加载模型
+        onnx.checker.check_model(self.onnx_model)  # 使用ONNX的checker模块来验证加载的模型是否正确
+        self.ort_session = onnxruntime.InferenceSession(self.model_path)  # 使用ONNX Runtime创建一个推理会话
+        self.image_size = 128  # 设置输入图像的大小
+        self.min_face = 100  # 设置面部检测的最小面积
+        self.iou_thres = 0.5  # 设置交并比阈值
+        self.thres = 1  # 设置一个阈值
+        self.filter = OneEuroFilter()  # 创建一个OneEuroFilter对象
+        self.previous_landmarks_set = None  # 初始化previous_landmarks_set
+
 
     def run(self, image, bbox):
         processed_image, details = self.preprocess(image, bbox)  # 调用预处理函数，处理输入的图像和边界框
