@@ -2,7 +2,8 @@
 
 1000点的人脸关键点定位，工程包含人脸检测和人脸关键点，以及模型 ([作者](https://github.com/you-old/FaceLandmark1000))
 
-torch landmark: https://github.com/DefTruth/torchlm
+torch landmark: https://github.com/DefTruth/torchlm  
+原项目：https://github.com/Single430/FaceLandmark1000
 
 #### 案例2: 使用[FaceLandmarks1000](https://github.com/Single430/FaceLandmark1000) 进行人脸1000关键点检测。请从Model-Zoo[<sup>2</sup>](#lite.ai.toolkit-2) 下载模型文件。
 ```c++
